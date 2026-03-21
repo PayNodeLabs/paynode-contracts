@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: BSL-1.1
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title PayNodeRouter
  * @author AgentPay Protocol (PayNode Labs)
  * @notice This contract is licensed under Business Source License 1.1.
  *         Commercial use by competitors is restricted for the first 2 years.
- * 
+ *
  * @dev Non-custodial, multi-coin payment router for the Agentic Economy.
  *      Stateless design ensures minimal gas costs (no SSTORE for order state).
  *      Protocol takes a fixed 1% fee (100 BPS).
  */
-contract PayNodeRouter is ReentrancyGuard, Ownable {
+contract PayNodeRouter is Ownable2Step, Pausable {
     using SafeERC20 for IERC20;
 
     address public protocolTreasury;
@@ -26,20 +26,24 @@ contract PayNodeRouter is ReentrancyGuard, Ownable {
     uint256 public constant PROTOCOL_FEE_BPS = 100;
     uint256 public constant MAX_BPS = 10000;
 
-    // Redesigned event to match SDK requirements (indexed orderId, token verification)
+    error InvalidAddress();
+    error AmountMustBeGreaterThanZero();
+
+    // Redesigned event to match SDK requirements (indexed orderId, token verification, chainId)
     event PaymentReceived(
         bytes32 indexed orderId,
         address indexed merchant,
         address indexed payer,
         address token,
         uint256 amount,
-        uint256 fee
+        uint256 fee,
+        uint256 chainId
     );
 
     event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
 
     constructor(address _protocolTreasury) Ownable(msg.sender) {
-        require(_protocolTreasury != address(0), "Invalid treasury address");
+        if (_protocolTreasury == address(0)) revert InvalidAddress();
         protocolTreasury = _protocolTreasury;
     }
 
@@ -48,10 +52,24 @@ contract PayNodeRouter is ReentrancyGuard, Ownable {
      * @param _newTreasury The new address for fee collection.
      */
     function updateTreasury(address _newTreasury) external onlyOwner {
-        require(_newTreasury != address(0), "Invalid treasury");
+        if (_newTreasury == address(0)) revert InvalidAddress();
         address old = protocolTreasury;
         protocolTreasury = _newTreasury;
         emit TreasuryUpdated(old, _newTreasury);
+    }
+
+    /**
+     * @notice Pause the contract in case of emergencies
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @notice Unpause the contract
+     */
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     /**
@@ -61,12 +79,7 @@ contract PayNodeRouter is ReentrancyGuard, Ownable {
      * @param amount The total payment amount.
      * @param orderId External tracking ID from the merchant's system (e.g., UUID mapped to bytes32).
      */
-    function pay(
-        address token,
-        address merchant,
-        uint256 amount,
-        bytes32 orderId
-    ) external nonReentrant {
+    function pay(address token, address merchant, uint256 amount, bytes32 orderId) external whenNotPaused {
         _processPayment(msg.sender, token, merchant, amount, orderId);
     }
 
@@ -75,6 +88,7 @@ contract PayNodeRouter is ReentrancyGuard, Ownable {
      *      Allows AI agents to sign locally and pay in a single on-chain transaction.
      */
     function payWithPermit(
+        address payer,
         address token,
         address merchant,
         uint256 amount,
@@ -83,35 +97,20 @@ contract PayNodeRouter is ReentrancyGuard, Ownable {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external nonReentrant {
+    ) external whenNotPaused {
         // 1. Consume permit to grant allowance to this router
-        IERC20Permit(token).permit(
-            msg.sender,
-            address(this),
-            amount,
-            deadline,
-            v,
-            r,
-            s
-        );
+        IERC20Permit(token).permit(payer, address(this), amount, deadline, v, r, s);
 
         // 2. Execute the payment split
-        _processPayment(msg.sender, token, merchant, amount, orderId);
+        _processPayment(payer, token, merchant, amount, orderId);
     }
 
     /**
      * @dev Internal split logic
      */
-    function _processPayment(
-        address payer,
-        address token,
-        address merchant,
-        uint256 amount,
-        bytes32 orderId
-    ) internal {
-        require(merchant != address(0), "Invalid merchant address");
-        require(token != address(0), "Invalid token address");
-        require(amount > 0, "Amount must be greater than 0");
+    function _processPayment(address payer, address token, address merchant, uint256 amount, bytes32 orderId) internal {
+        if (merchant == address(0) || token == address(0)) revert InvalidAddress();
+        if (amount == 0) revert AmountMustBeGreaterThanZero();
 
         // Calculate 1% fee
         uint256 fee = (amount * PROTOCOL_FEE_BPS) / MAX_BPS;
@@ -119,13 +118,12 @@ contract PayNodeRouter is ReentrancyGuard, Ownable {
 
         // Execute atomic non-custodial transfers
         IERC20(token).safeTransferFrom(payer, merchant, merchantAmount);
-        
+
         if (fee > 0) {
             IERC20(token).safeTransferFrom(payer, protocolTreasury, fee);
         }
 
         // Emit event for SDK webhook listeners
-        // The SDK MUST verify the 'token' address to prevent fake-token attacks.
-        emit PaymentReceived(orderId, merchant, payer, token, amount, fee);
+        emit PaymentReceived(orderId, merchant, payer, token, amount, fee, block.chainid);
     }
 }
