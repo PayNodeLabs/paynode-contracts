@@ -18,7 +18,7 @@ contract MockToken is ERC20, ERC20Permit {
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
     }
-    
+
     function decimals() public view override returns (uint8) {
         return _decimals;
     }
@@ -31,7 +31,7 @@ contract PayNodeRouterTest is Test {
 
     address public treasury = address(1);
     address public merchant = address(2);
-    
+
     uint256 public payerPrivateKey = 0xA11CE;
     address public payer;
 
@@ -47,16 +47,16 @@ contract PayNodeRouterTest is Test {
 
     function setUp() public {
         payer = vm.addr(payerPrivateKey);
-        
+
         // Mock Base USDC (6 decimals)
         usdc = new MockToken("Base USDC", "USDC", 6);
         // Mock Tether USD (6 decimals)
         usdt = new MockToken("Tether USD", "USDT", 6);
-        
+
         router = new PayNodeRouter(treasury);
 
         // Mint initial balances
-        usdc.mint(payer, 1000 * 10 ** 6); 
+        usdc.mint(payer, 1000 * 10 ** 6);
         usdt.mint(payer, 1000 * 10 ** 6);
     }
 
@@ -77,7 +77,7 @@ contract PayNodeRouterTest is Test {
         assertEq(usdc.balanceOf(merchant), 99 * 10 ** 6);
         assertEq(usdc.balanceOf(treasury), 1 * 10 ** 6);
     }
-    
+
     function test_Pay_USDT() public {
         uint256 paymentAmount = 50 * 10 ** 6;
         bytes32 orderId = keccak256("order_agent_usdt_01");
@@ -101,10 +101,12 @@ contract PayNodeRouterTest is Test {
         bytes32 orderId = keccak256("order_agent_002");
         uint256 deadline = block.timestamp + 1 hours;
 
-        bytes32 permitTypehash = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-        bytes32 structHash = keccak256(abi.encode(permitTypehash, payer, address(router), paymentAmount, usdc.nonces(payer), deadline));
+        bytes32 permitTypehash =
+            keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+        bytes32 structHash =
+            keccak256(abi.encode(permitTypehash, payer, address(router), paymentAmount, usdc.nonces(payer), deadline));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", usdc.DOMAIN_SEPARATOR(), structHash));
-        
+
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(payerPrivateKey, digest);
 
         uint256 expectedFee = 1 * 10 ** 6;

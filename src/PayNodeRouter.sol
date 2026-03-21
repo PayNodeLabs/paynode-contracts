@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * @author AgentPay Protocol (PayNode Labs)
  * @notice This contract is licensed under Business Source License 1.1.
  *         Commercial use by competitors is restricted for the first 2 years.
- * 
+ *
  * @dev Non-custodial, multi-coin payment router for the Agentic Economy.
  *      Stateless design ensures minimal gas costs (no SSTORE for order state).
  *      Protocol takes a fixed 1% fee (100 BPS).
@@ -79,12 +79,7 @@ contract PayNodeRouter is Ownable2Step, Pausable {
      * @param amount The total payment amount.
      * @param orderId External tracking ID from the merchant's system (e.g., UUID mapped to bytes32).
      */
-    function pay(
-        address token,
-        address merchant,
-        uint256 amount,
-        bytes32 orderId
-    ) external whenNotPaused {
+    function pay(address token, address merchant, uint256 amount, bytes32 orderId) external whenNotPaused {
         _processPayment(msg.sender, token, merchant, amount, orderId);
     }
 
@@ -104,15 +99,7 @@ contract PayNodeRouter is Ownable2Step, Pausable {
         bytes32 s
     ) external whenNotPaused {
         // 1. Consume permit to grant allowance to this router
-        IERC20Permit(token).permit(
-            payer,
-            address(this),
-            amount,
-            deadline,
-            v,
-            r,
-            s
-        );
+        IERC20Permit(token).permit(payer, address(this), amount, deadline, v, r, s);
 
         // 2. Execute the payment split
         _processPayment(payer, token, merchant, amount, orderId);
@@ -121,13 +108,7 @@ contract PayNodeRouter is Ownable2Step, Pausable {
     /**
      * @dev Internal split logic
      */
-    function _processPayment(
-        address payer,
-        address token,
-        address merchant,
-        uint256 amount,
-        bytes32 orderId
-    ) internal {
+    function _processPayment(address payer, address token, address merchant, uint256 amount, bytes32 orderId) internal {
         if (merchant == address(0) || token == address(0)) revert InvalidAddress();
         if (amount == 0) revert AmountMustBeGreaterThanZero();
 
@@ -137,7 +118,7 @@ contract PayNodeRouter is Ownable2Step, Pausable {
 
         // Execute atomic non-custodial transfers
         IERC20(token).safeTransferFrom(payer, merchant, merchantAmount);
-        
+
         if (fee > 0) {
             IERC20(token).safeTransferFrom(payer, protocolTreasury, fee);
         }
