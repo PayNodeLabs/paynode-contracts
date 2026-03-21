@@ -41,7 +41,8 @@ contract PayNodeRouterTest is Test {
         address indexed payer,
         address token,
         uint256 amount,
-        uint256 fee
+        uint256 fee,
+        uint256 chainId
     );
 
     function setUp() public {
@@ -68,7 +69,7 @@ contract PayNodeRouterTest is Test {
 
         uint256 expectedFee = 1 * 10 ** 6;
         vm.expectEmit(true, true, true, true);
-        emit PaymentReceived(orderId, merchant, payer, address(usdc), paymentAmount, expectedFee);
+        emit PaymentReceived(orderId, merchant, payer, address(usdc), paymentAmount, expectedFee, block.chainid);
 
         vm.prank(payer);
         router.pay(address(usdc), merchant, paymentAmount, orderId);
@@ -86,7 +87,7 @@ contract PayNodeRouterTest is Test {
 
         uint256 expectedFee = 5 * 10 ** 5; // 0.5 USDT
         vm.expectEmit(true, true, true, true);
-        emit PaymentReceived(orderId, merchant, payer, address(usdt), paymentAmount, expectedFee);
+        emit PaymentReceived(orderId, merchant, payer, address(usdt), paymentAmount, expectedFee, block.chainid);
 
         vm.prank(payer);
         router.pay(address(usdt), merchant, paymentAmount, orderId);
@@ -108,10 +109,12 @@ contract PayNodeRouterTest is Test {
 
         uint256 expectedFee = 1 * 10 ** 6;
         vm.expectEmit(true, true, true, true);
-        emit PaymentReceived(orderId, merchant, payer, address(usdc), paymentAmount, expectedFee);
+        emit PaymentReceived(orderId, merchant, payer, address(usdc), paymentAmount, expectedFee, block.chainid);
 
-        vm.prank(payer);
-        router.payWithPermit(address(usdc), merchant, paymentAmount, orderId, deadline, v, r, s);
+        // We use an agent to send the transaction to test the Relayer functionality properly!
+        address agent = address(uint160(0x12345));
+        vm.prank(agent);
+        router.payWithPermit(payer, address(usdc), merchant, paymentAmount, orderId, deadline, v, r, s);
 
         assertEq(usdc.balanceOf(merchant), 99 * 10 ** 6);
         assertEq(usdc.balanceOf(treasury), 1 * 10 ** 6);
