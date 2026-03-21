@@ -1,6 +1,6 @@
 out/
 cache/
 broadcast/
-lib/
+# lib/  (Removed to allow submodules to be tracked)
 .env
 .env.*
