@@ -1,0 +1,29 @@
+Business Source License 1.1
+
+Parameters
+
+Licensor:           PayNode Labs
+Software:           PayNode Protocol Smart Contracts
+Use Limitation:     Commercial use by competitors for the purpose of creating a competing payment protocol or service is prohibited. Development and non-commercial use are permitted.
+Change Date:        2028-03-21
+Change License:     GPL-2.0-or-later
+
+License Text
+
+Copyright © 2024-2026 PayNode Labs. All rights reserved.
+
+Terms
+
+1. The Licensor hereby grants you the right to copy, modify, create derivative works, redistribute, and make non-production use of the Software.
+
+2. You may make production use of the Software only as permitted by the Use Limitation condition above or by a separate agreement with the Licensor.
+
+3. Effective on the Change Date, or the fourth anniversary of the first public availability of a specific version of the Software under this License, whichever is earlier, the Licensor hereby grants you rights under the terms of the Change License, and the Use Limitation condition itself will no longer apply.
+
+4. If you are using the Software in production as a result of the Change Date or the fourth anniversary of the first public availability of a specific version of the Software, whichever is earlier, you may continue to use it in production under the terms of the Change License.
+
+5. You must include a copy of this License in all copies of the Software you distribute, and you must include the following notice in all files: "Licensed under the Business Source License 1.1 (BSL 1.1). See the LICENSE file for details."
+
+6. This License does not grant you any right to use the Licensor's or its affiliates' names, logos, or trademarks, except as necessary to reproduce the notice required by this License.
+
+7. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
