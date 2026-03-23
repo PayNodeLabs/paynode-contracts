@@ -25,9 +25,11 @@ contract PayNodeRouter is Ownable2Step, Pausable {
     // Fixed protocol fee: 1% (100 basis points out of 10000)
     uint256 public constant PROTOCOL_FEE_BPS = 100;
     uint256 public constant MAX_BPS = 10000;
+    uint256 public constant MIN_PAYMENT_AMOUNT = 1000;
 
     error InvalidAddress();
-    error AmountMustBeGreaterThanZero();
+    error AmountTooLow();
+    error UnauthorizedCaller();
 
     // Redesigned event to match SDK requirements (indexed orderId, token verification, chainId)
     event PaymentReceived(
@@ -98,6 +100,8 @@ contract PayNodeRouter is Ownable2Step, Pausable {
         bytes32 r,
         bytes32 s
     ) external whenNotPaused {
+        if (msg.sender != payer) revert UnauthorizedCaller();
+
         // 1. Consume permit to grant allowance to this router
         IERC20Permit(token).permit(payer, address(this), amount, deadline, v, r, s);
 
@@ -110,7 +114,7 @@ contract PayNodeRouter is Ownable2Step, Pausable {
      */
     function _processPayment(address payer, address token, address merchant, uint256 amount, bytes32 orderId) internal {
         if (merchant == address(0) || token == address(0)) revert InvalidAddress();
-        if (amount == 0) revert AmountMustBeGreaterThanZero();
+        if (amount < MIN_PAYMENT_AMOUNT) revert AmountTooLow();
 
         // Calculate 1% fee
         uint256 fee = (amount * PROTOCOL_FEE_BPS) / MAX_BPS;
