@@ -113,9 +113,8 @@ contract PayNodeRouterTest is Test {
         vm.expectEmit(true, true, true, true);
         emit PaymentReceived(orderId, merchant, payer, address(usdc), paymentAmount, expectedFee, block.chainid);
 
-        // We use an agent to send the transaction to test the Relayer functionality properly!
-        address agent = address(uint160(0x12345));
-        vm.prank(agent);
+        // Use the payer as the caller to prevent MiTM issues as per router security logic
+        vm.prank(payer);
         router.payWithPermit(payer, address(usdc), merchant, paymentAmount, orderId, deadline, v, r, s);
 
         assertEq(usdc.balanceOf(merchant), 99 * 10 ** 6);
