@@ -2,14 +2,18 @@
 pragma solidity ^0.8.20;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
 /**
  * @title MockUSDC
  * @dev Simple ERC20 for POM Demo. 6 decimals to match real USDC.
  *      Public minting allowed for sandbox testing.
+ *      Includes EIP-2612 Permit support.
  */
-contract MockUSDC is ERC20 {
-    constructor() ERC20("Mock USDC", "mUSDC") {}
+contract MockUSDC is ERC20, ERC20Permit {
+    constructor() ERC20("USD Coin", "USDC") ERC20Permit("USD Coin") {
+        _mint(msg.sender, 1_000_000 * 10 ** decimals());
+    }
 
     // 6 decimals to match USDC on Base
     function decimals() public view virtual override returns (uint8) {

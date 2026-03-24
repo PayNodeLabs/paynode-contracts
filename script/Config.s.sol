@@ -7,7 +7,7 @@ library Config {
     address public constant ROUTER_SEPOLIA = 0x24cD8b68aaC209217ff5a6ef1Bf55a59f2c8Ca6F;
     address public constant TREASURY = 0x598bF63F5449876efafa7b36b77Deb2070621C0E;
     address public constant USDC_MAINNET = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
-    address public constant USDC_SEPOLIA = 0xeAC1f2C7099CdaFfB91Aa3b8Ffd653Ef16935798;
+    address public constant USDC_SEPOLIA = 0x109AEddD656Ed2761d1e210E179329105039c784;
     uint256 public constant MIN_PAYMENT_AMOUNT = 1000;
     uint256 public constant FEE_BPS = 100;
 }
