@@ -13,20 +13,14 @@ abstract contract ERC20PermitV2 is ERC20, IERC20Permit, EIP712, Nonces {
 
     constructor(string memory name) EIP712(name, "2") {}
 
-    function permit(
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public virtual override {
+    function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
+        public
+        virtual
+        override
+    {
         require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
 
-        bytes32 structHash = keccak256(
-            abi.encode(PERMIT_TYPEHASH, owner, spender, value, _useNonce(owner), deadline)
-        );
+        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, _useNonce(owner), deadline));
         bytes32 digest = _hashTypedDataV4(structHash);
 
         address recoveredAddress = ECDSA.recover(digest, v, r, s);
@@ -47,11 +41,13 @@ abstract contract ERC20PermitV2 is ERC20, IERC20Permit, EIP712, Nonces {
 contract MockUSDC is ERC20PermitV2 {
     mapping(address => mapping(bytes32 => bool)) private _authorizationStates;
 
-    bytes32 public constant TRANSFER_WITH_AUTHORIZATION_TYPEHASH =
-        keccak256("TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)");
-    
-    bytes32 public constant RECEIVE_WITH_AUTHORIZATION_TYPEHASH =
-        keccak256("ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)");
+    bytes32 public constant TRANSFER_WITH_AUTHORIZATION_TYPEHASH = keccak256(
+        "TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
+    );
+
+    bytes32 public constant RECEIVE_WITH_AUTHORIZATION_TYPEHASH = keccak256(
+        "ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
+    );
 
     bytes32 public constant CANCEL_AUTHORIZATION_TYPEHASH =
         keccak256("CancelAuthorization(address authorizer,bytes32 nonce)");
@@ -100,23 +96,15 @@ contract MockUSDC is ERC20PermitV2 {
         _transferWithAuthorization(from, to, value, validAfter, validBefore, nonce, v, r, s);
     }
 
-    function cancelAuthorization(
-        address authorizer,
-        bytes32 nonce,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external {
-        bytes32 structHash = keccak256(
-            abi.encode(CANCEL_AUTHORIZATION_TYPEHASH, authorizer, nonce)
-        );
+    function cancelAuthorization(address authorizer, bytes32 nonce, uint8 v, bytes32 r, bytes32 s) external {
+        bytes32 structHash = keccak256(abi.encode(CANCEL_AUTHORIZATION_TYPEHASH, authorizer, nonce));
         bytes32 digest = _hashTypedDataV4(structHash);
         address signer = ECDSA.recover(digest, v, r, s);
         require(signer == authorizer, "invalid signature");
-        
+
         require(!_authorizationStates[authorizer][nonce], "authorization already used");
         _authorizationStates[authorizer][nonce] = true;
-        
+
         emit AuthorizationCanceled(authorizer, nonce);
     }
 
@@ -144,7 +132,7 @@ contract MockUSDC is ERC20PermitV2 {
 
         _authorizationStates[from][nonce] = true;
         _transfer(from, to, value);
-        
+
         emit AuthorizationUsed(from, nonce);
     }
 }

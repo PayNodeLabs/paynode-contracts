@@ -6,10 +6,10 @@ import {MockUSDC} from "../src/MockUSDC.sol";
 
 contract MockUSDC_EIP3009_Test is Test {
     MockUSDC public token;
-    
+
     uint256 constant ALICE_KEY = 0xA11CE;
     uint256 constant BOB_KEY = 0xB0B;
-    
+
     address public alice;
     address public bob;
 
@@ -66,7 +66,7 @@ contract MockUSDC_EIP3009_Test is Test {
     function test_transferWithAuthorization_revertIfExpired() public {
         uint256 amount = 10e6;
         bytes32 nonce = keccak256("nonce-4");
-        
+
         vm.warp(block.timestamp + 2 hours);
         uint256 validBefore = block.timestamp - 1 hours;
 
@@ -110,38 +110,21 @@ contract MockUSDC_EIP3009_Test is Test {
         bytes32 nonce
     ) internal view returns (uint8 v, bytes32 r, bytes32 s) {
         bytes32 structHash = keccak256(
-            abi.encode(
-                token.TRANSFER_WITH_AUTHORIZATION_TYPEHASH(),
-                from,
-                to,
-                value,
-                validAfter,
-                validBefore,
-                nonce
-            )
+            abi.encode(token.TRANSFER_WITH_AUTHORIZATION_TYPEHASH(), from, to, value, validAfter, validBefore, nonce)
         );
         return _signEIP712(signerKey, structHash);
     }
 
-    function _signCancel(
-        uint256 signerKey,
-        address authorizer,
-        bytes32 nonce
-    ) internal view returns (uint8 v, bytes32 r, bytes32 s) {
-        bytes32 structHash = keccak256(
-            abi.encode(
-                token.CANCEL_AUTHORIZATION_TYPEHASH(),
-                authorizer,
-                nonce
-            )
-        );
+    function _signCancel(uint256 signerKey, address authorizer, bytes32 nonce)
+        internal
+        view
+        returns (uint8 v, bytes32 r, bytes32 s)
+    {
+        bytes32 structHash = keccak256(abi.encode(token.CANCEL_AUTHORIZATION_TYPEHASH(), authorizer, nonce));
         return _signEIP712(signerKey, structHash);
     }
 
-    function _signEIP712(
-        uint256 signerKey,
-        bytes32 structHash
-    ) internal view returns (uint8 v, bytes32 r, bytes32 s) {
+    function _signEIP712(uint256 signerKey, bytes32 structHash) internal view returns (uint8 v, bytes32 r, bytes32 s) {
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", token.DOMAIN_SEPARATOR(), structHash));
         (v, r, s) = vm.sign(signerKey, digest);
     }
