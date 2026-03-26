@@ -120,4 +120,54 @@ contract PayNodeRouterTest is Test {
         assertEq(usdc.balanceOf(merchant), 99 * 10 ** 6);
         assertEq(usdc.balanceOf(treasury), 1 * 10 ** 6);
     }
+
+    function testFuzz_Pay(uint256 amount, address fuzzMerchant) public {
+        vm.assume(fuzzMerchant != address(0) && fuzzMerchant != treasury && fuzzMerchant != payer);
+        vm.assume(amount >= 1000 && amount <= 1000000 * 10 ** 6);
+
+        usdc.mint(payer, amount);
+
+        bytes32 orderId = keccak256("fuzz_order");
+
+        uint256 payerBalanceBefore = usdc.balanceOf(payer);
+        uint256 merchantBalanceBefore = usdc.balanceOf(fuzzMerchant);
+        uint256 treasuryBalanceBefore = usdc.balanceOf(treasury);
+
+        vm.prank(payer);
+        usdc.approve(address(router), amount);
+
+        uint256 expectedFee = amount / 100;
+        uint256 expectedMerchantAmt = amount - expectedFee;
+
+        vm.prank(payer);
+        router.pay(address(usdc), fuzzMerchant, amount, orderId);
+
+        assertEq(usdc.balanceOf(fuzzMerchant), merchantBalanceBefore + expectedMerchantAmt);
+        assertEq(usdc.balanceOf(treasury), treasuryBalanceBefore + expectedFee);
+        assertEq(usdc.balanceOf(payer), payerBalanceBefore - amount);
+    }
+
+    function testFuzz_PayWithPermit(uint256 amount, address fuzzMerchant) public {
+        vm.assume(fuzzMerchant != address(0) && fuzzMerchant != treasury && fuzzMerchant != payer);
+        vm.assume(amount >= 1000 && amount <= 1000000 * 10 ** 6);
+
+        // Mint extra to ensure enough balance for high fuzz amounts
+        usdc.mint(payer, amount);
+
+        bytes32 orderId = keccak256("fuzz_order_permit");
+        uint256 deadline = block.timestamp + 1 hours;
+
+        bytes32 permitTypehash = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+        bytes32 structHash = keccak256(abi.encode(permitTypehash, payer, address(router), amount, usdc.nonces(payer), deadline));
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", usdc.DOMAIN_SEPARATOR(), structHash));
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(payerPrivateKey, digest);
+
+        uint256 treasuryBalanceBefore = usdc.balanceOf(treasury);
+
+        vm.prank(payer);
+        router.payWithPermit(payer, address(usdc), fuzzMerchant, amount, orderId, deadline, v, r, s);
+
+        assertEq(usdc.balanceOf(treasury), treasuryBalanceBefore + (amount / 100));
+    }
 }

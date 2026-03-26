@@ -11,7 +11,7 @@ This document provides standardized deployment commands for the PayNode Protocol
 ## 🧪 1. Base Sepolia (Testnet)
 Deploy using the specialized deployment script for the testnet.
 
-- **Current v1.1 Address:** `0xB587Bc36aaCf65962eCd6Ba59e2DA76f2f575408`
+- **Current v1.4 Address:** `0x24cD8b68aaC209217ff5a6ef1Bf55a59f2c8Ca6F`
 
 ```bash
 cd packages/contracts && \
