@@ -157,8 +157,10 @@ contract PayNodeRouterTest is Test {
         bytes32 orderId = keccak256("fuzz_order_permit");
         uint256 deadline = block.timestamp + 1 hours;
 
-        bytes32 permitTypehash = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-        bytes32 structHash = keccak256(abi.encode(permitTypehash, payer, address(router), amount, usdc.nonces(payer), deadline));
+        bytes32 permitTypehash =
+            keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+        bytes32 structHash =
+            keccak256(abi.encode(permitTypehash, payer, address(router), amount, usdc.nonces(payer), deadline));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", usdc.DOMAIN_SEPARATOR(), structHash));
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(payerPrivateKey, digest);
