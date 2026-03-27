@@ -127,7 +127,7 @@ contract PayNodeRouterTest is Test {
 
         usdc.mint(payer, amount);
 
-        bytes32 orderId = keccak256("fuzz_order");
+        bytes32 orderId = keccak256(abi.encodePacked("fuzz_order", amount, fuzzMerchant));
 
         uint256 payerBalanceBefore = usdc.balanceOf(payer);
         uint256 merchantBalanceBefore = usdc.balanceOf(fuzzMerchant);
@@ -154,7 +154,7 @@ contract PayNodeRouterTest is Test {
         // Mint extra to ensure enough balance for high fuzz amounts
         usdc.mint(payer, amount);
 
-        bytes32 orderId = keccak256("fuzz_order_permit");
+        bytes32 orderId = keccak256(abi.encodePacked("fuzz_order_permit", amount, fuzzMerchant));
         uint256 deadline = block.timestamp + 1 hours;
 
         bytes32 permitTypehash =
@@ -171,5 +171,60 @@ contract PayNodeRouterTest is Test {
         router.payWithPermit(payer, address(usdc), fuzzMerchant, amount, orderId, deadline, v, r, s);
 
         assertEq(usdc.balanceOf(treasury), treasuryBalanceBefore + (amount / 100));
+    }
+
+    // --- Negative Tests ---
+
+    function test_RevertWhen_AmountTooLow() public {
+        uint256 tooLow = 999; // Below MIN_PAYMENT_AMOUNT (1000)
+        bytes32 orderId = keccak256("order_dust");
+
+        vm.prank(payer);
+        usdc.approve(address(router), tooLow);
+
+        vm.expectRevert(PayNodeRouter.AmountTooLow.selector);
+        vm.prank(payer);
+        router.pay(address(usdc), merchant, tooLow, orderId);
+    }
+
+    function test_RevertWhen_MerchantIsZeroAddress() public {
+        uint256 amount = 100 * 10 ** 6;
+        bytes32 orderId = keccak256("order_zero_merchant");
+
+        vm.prank(payer);
+        usdc.approve(address(router), amount);
+
+        vm.expectRevert(PayNodeRouter.InvalidAddress.selector);
+        vm.prank(payer);
+        router.pay(address(usdc), address(0), amount, orderId);
+    }
+
+    function test_RevertWhen_TokenIsZeroAddress() public {
+        uint256 amount = 100 * 10 ** 6;
+        bytes32 orderId = keccak256("order_zero_token");
+
+        vm.expectRevert(PayNodeRouter.InvalidAddress.selector);
+        vm.prank(payer);
+        router.pay(address(0), merchant, amount, orderId);
+    }
+
+    function test_RevertWhen_PayWithPermit_CallerIsNotPayer() public {
+        uint256 amount = 100 * 10 ** 6;
+        bytes32 orderId = keccak256("order_unauthorized");
+        uint256 deadline = block.timestamp + 1 hours;
+
+        bytes32 permitTypehash =
+            keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+        bytes32 structHash =
+            keccak256(abi.encode(permitTypehash, payer, address(router), amount, usdc.nonces(payer), deadline));
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", usdc.DOMAIN_SEPARATOR(), structHash));
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(payerPrivateKey, digest);
+
+        // Call from a different address (not payer)
+        address attacker = address(0xBEEF);
+        vm.expectRevert(PayNodeRouter.UnauthorizedCaller.selector);
+        vm.prank(attacker);
+        router.payWithPermit(payer, address(usdc), merchant, amount, orderId, deadline, v, r, s);
     }
 }
