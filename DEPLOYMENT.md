@@ -77,11 +77,11 @@ forge script script/DeployPOM.s.sol:DeployPOM \
    - `apps/paynode-web/.env` (`NEXT_PUBLIC_PAYNODE_ROUTER_ADDRESS`)
 
    **Option B: Automated Sync (Recommended)**
-   The project now uses a central `paynode-config.json`. To sync new addresses across the Web app and SDKs automatically:
-   - Update `router` and `tokens.USDC` entries in `paynode-config.json`.
-   - Run the sync script from the project root:
+   The project now uses a central `meta/paynode-config.json`. To sync new addresses across the Web app and SDKs automatically inside the aggregate workspace:
+   - Update `router` and `tokens.USDC` entries in `meta/paynode-config.json`.
+   - Run the sync script from the aggregate workspace root:
      ```bash
-     python3 scripts/sync-config.py
+     python3 meta/scripts/sync-config.py
      ```
 
 3. **Transfer Ownership (Optional):**
